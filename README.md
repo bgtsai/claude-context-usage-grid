@@ -1,41 +1,44 @@
-# Claude /context 用量方格圖
+**English** [繁體中文](README-TC.md#claude-context-用量方格圖) 
 
-Tampermonkey 腳本。在 [claude.ai](https://claude.ai) 的 Claude Code 對話裡執行 `/context`，原本的用量表格會自動轉成 10×10 方格圖（每格代表總容量的 1%），一眼就能看出各分類的佔比，以及距離自動壓縮還有多少空間。
+# Claude /context Usage Grid
 
-## 前後對照
+A Tampermonkey userscript. When you run `/context` in a Claude Code conversation on [claude.ai](https://claude.ai), the usage table is automatically turned into a 10×10 grid (each cell is 1% of the total context window), so you can see at a glance how much each category takes up and how much room is left before auto-compaction.
 
-**使用前**：`/context` 輸出的文字表格
+## Before and after
 
-<img src="docs/before.png" width="560" alt="使用前：/context 的文字表格">
+**Before**: the text table printed by `/context`
 
-**使用後**：方格圖，原始表格預設折疊，點「顯示原始資料」可展開
+<img src="docs/before.png" width="560" alt="Before: the /context text table">
 
-<img src="docs/after_light.png" width="560" alt="使用後：淺色主題">
+**After**: the grid. The original table is collapsed by default; click 「顯示原始資料」 (Show raw data) to expand it.
 
-深色主題會自動切換配色：
+<img src="docs/after_light.png" width="560" alt="After: light theme">
 
-<img src="docs/after_dark.png" width="560" alt="使用後：深色主題">
+The colors switch automatically in dark mode:
 
-## 功能
+<img src="docs/after_dark.png" width="560" alt="After: dark theme">
 
-- **自動處理**：不用按按鈕，`/context` 的輸出一出現就轉換
-- **每次查詢各一張圖**：同一個對話裡查了好幾次，每則輸出各自有圖；重新整理頁面或之後再打開對話，也會自動補畫
-- **與上一次比較**：從第二次查詢開始，每個分類旁邊會標出跟前一次的差值（例如 Messages +18.2k）
-- **壓縮提示**：Messages 比上一次少了 30% 以上時，顯示「中間可能發生過壓縮」
-- **Autocompact buffer** 以斜線格表示，是從可用空間裡預留給自動壓縮的區塊
-- **deferred 分類另列**：`MCP tools (deferred)`、`System tools (deferred)` 不算在總用量裡，所以不畫進方格，改列在圖例下方
-- 原始資料完整保留，只是折疊起來，不會改動或刪除網頁原本的內容
+## Features
 
-## 安裝
+- **Fully automatic**: no button to press. The output is converted as soon as `/context` prints it.
+- **One grid per query**: if you run `/context` several times in one conversation, each output gets its own grid. Grids are redrawn after a page reload or when you reopen the conversation later.
+- **Comparison with the previous query**: from the second query on, each category shows the change since the previous one (e.g. Messages +18.2k).
+- **Compaction hint**: if Messages dropped by more than 30% since the previous query, a note says compaction may have happened in between.
+- **Autocompact buffer** is drawn as hatched cells. It is the part of free space reserved for auto-compaction.
+- **Deferred categories listed separately**: `MCP tools (deferred)` and `System tools (deferred)` are not counted in the total, so they are not drawn in the grid and are listed below the legend instead.
+- The original output is kept intact, only collapsed. Nothing on the page is modified or removed.
 
-1. 瀏覽器先裝好 [Tampermonkey](https://www.tampermonkey.net/)
-2. 點這裡安裝腳本：[Context_Usage_Grid.user.js](https://raw.githubusercontent.com/bgtsai/claude-context-usage-grid/main/Context_Usage_Grid.user.js)
-3. 打開 claude.ai 的 Claude Code 對話，輸入 `/context`
+## Installation
 
-腳本有設定自動更新，之後的新版本 Tampermonkey 會自動安裝。
+1. Install [Tampermonkey](https://www.tampermonkey.net/) in your browser.
+2. Click here to install the script: [Context_Usage_Grid.user.js](https://raw.githubusercontent.com/bgtsai/claude-context-usage-grid/main/Context_Usage_Grid.user.js)
+3. Open a Claude Code conversation on claude.ai and type `/context`.
 
-## 說明
+The script has auto-update configured, so Tampermonkey will install new versions automatically.
 
-- 方格依百分比分配，使用最大餘數法讓總數剛好 100 格。不到半格的分類（例如 0.1%）不會出現在方格裡，只列在圖例中。
-- 腳本只讀取頁面上已經顯示的文字，不會攔截網路請求，也不會把任何資料傳到別處。
-- 判斷依據是 `/context` 輸出的文字格式，不依賴網頁的 class 名稱，所以網頁改版通常不影響。如果之後 Claude Code 改了 `/context` 的輸出格式，就需要更新解析規則。
+## Notes
+
+- Cells are allocated by percentage using the largest remainder method, so the total is exactly 100 cells. Categories smaller than half a cell (e.g. 0.1%) do not appear in the grid and are only listed in the legend.
+- The script only reads text already shown on the page. It does not intercept network requests and does not send any data anywhere.
+- Detection is based on the text format of the `/context` output, not on the site's class names, so site redesigns usually do not break it. If Claude Code changes the `/context` output format, the parsing rules will need an update.
+- The UI labels in the grid (such as 「顯示原始資料」) are currently in Traditional Chinese.
