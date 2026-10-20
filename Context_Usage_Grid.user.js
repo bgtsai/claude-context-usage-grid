@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude /context 用量方格圖
 // @namespace    https://github.com/bgtsai
-// @version      1.0.0
+// @version      1.0.1
 // @description  把 Claude Code /context 的文字輸出轉成 10×10 方格圖，原始資料折疊，並顯示與上一次查詢的差值
 // @author       bgtsai
 // @match        https://claude.ai/*
@@ -66,7 +66,7 @@
     for (const line of block.split('\n')) {
       const m = line.match(/^\s*\|?\s*([A-Za-z][A-Za-z ()]*?)\s*[|\t]\s*(~?[\d.,]+\s*[km]?)\s*[|\t]\s*([\d.]+)%/i);
       if (!m) continue;
-      rows[m[1].trim()] = { tokens: parseTokens(m[2]), pct: parseFloat(m[3]) };
+      rows[m[1].trim()] = { tokens: parseTokens(m[2]), pct: parseFloat(m[3]), pctText: m[3] };
     }
     if (!rows['Free space']) return null;
     return {
@@ -149,7 +149,7 @@
       row.appendChild(sw);
       row.appendChild(el('span', 'cug-name', c.key));
       row.appendChild(el('span', 'cug-num', fmtTokens(r.tokens)));
-      row.appendChild(el('span', 'cug-num cug-dim', r.pct + '%'));
+      row.appendChild(el('span', 'cug-num cug-dim', r.pctText + '%'));
       const pr = prev && prev.rows[c.key];
       const d = pr ? deltaSpan(r.tokens, pr.tokens) : null;
       row.appendChild(d || el('span', 'cug-delta'));
@@ -181,7 +181,7 @@
     const roots = [];
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
       acceptNode(n) {
-        return /Context Usage/.test(n.nodeValue) && !(n.parentElement && n.parentElement.closest('.' + CARD_CLASS))
+        return /^(#+\s*)?Context Usage$/.test(n.nodeValue.trim()) && !(n.parentElement && n.parentElement.closest('.' + CARD_CLASS))
           ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
       },
     });
@@ -289,8 +289,12 @@ html.dark .${CARD_CLASS}, html[data-mode="dark"] .${CARD_CLASS}, html[data-theme
   // ---------- 啟動與監看 ----------
 
   injectStyle();
+  // 節流：頁面持續變動時，最多每 500ms 仍保證處理一次（純 debounce 會被無限延後）
   let timer = 0;
-  const schedule = () => { clearTimeout(timer); timer = setTimeout(process, 300); };
+  const schedule = () => {
+    if (timer) return;
+    timer = setTimeout(() => { timer = 0; process(); }, 500);
+  };
   new MutationObserver(muts => {
     // 忽略自己插入卡片造成的變動
     for (const m of muts) {
