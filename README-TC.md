@@ -10,7 +10,7 @@ Tampermonkey 腳本。在 [claude.ai](https://claude.ai) 的 Claude Code 對話�
 
 <img src="docs/before.png" width="560" alt="使用前：/context 的文字表格">
 
-**使用後**：方格圖，原始表格預設折疊，點「顯示原始資料」可展開
+**使用後**：整段收成一顆「顯示用量詳細資料」，點開是方格圖；方格圖底下再點「顯示原始資料」才展開原始表格
 
 <img src="docs/after_light.png" width="560" alt="使用後：淺色主題">
 

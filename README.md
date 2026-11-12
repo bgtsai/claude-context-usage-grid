@@ -10,7 +10,7 @@ A Tampermonkey userscript. When you run `/context` in a Claude Code conversation
 
 <img src="docs/before.png" width="560" alt="Before: the /context text table">
 
-**After**: the grid. The original table is collapsed by default; click 「顯示原始資料」 (Show raw data) to expand it.
+**After**: everything is collapsed into one button, 「顯示用量詳細資料」 (Show usage details). Click it to see the grid; under the grid, click 「顯示原始資料」 (Show raw data) to see the original table.
 
 <img src="docs/after_light.png" width="560" alt="After: light theme">
 

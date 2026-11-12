@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Claude /context 用量方格圖
 // @namespace    https://github.com/bgtsai
-// @version      1.0.1
-// @description  把 Claude Code /context 的文字輸出轉成 10×10 方格圖，原始資料折疊，並顯示與上一次查詢的差值
+// @version      1.1.0
+// @description  把 Claude Code /context 的文字輸出收成一顆「顯示用量詳細資料」，點開是 10×10 方格圖（含與上一次的差值），再點「顯示原始資料」才看原文
 // @author       bgtsai
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,8 @@
 
   const CARD_CLASS = 'cug-card';
   const ROOT_ATTR = 'data-cug-root';
-  const OPEN_ATTR = 'data-cug-open';
+  const OPEN_ATTR = 'data-cug-open';   // 第二層：原始資料
+  const EXP_ATTR = 'data-cug-expanded'; // 第一層：方格圖（v1.1.0 起預設收起）
   const CELLS = 100;
   const COMPACT_DROP_RATIO = 0.3; // Messages 比上一次少 30% 以上，視為可能已壓縮
 
@@ -111,6 +112,11 @@
 
   function buildCard(data, prev, root) {
     const card = el('div', CARD_CLASS);
+    // v1.1.0：/context 之後會由 claude-context-meter 自動送，每次都攤開會佔掉對話版面，所以預設只剩一顆按鈕（使用者定案）。
+    // 兩層：〔顯示用量詳細資料〕→ 方格圖；方格圖底下〔顯示原始資料〕→ 原文。狀態記在 root 上，卡片重建時不會跑掉。
+    const expand = el('button', 'cug-expand');
+    expand.type = 'button';
+    const detail = el('div', 'cug-detail');
 
     const header = el('div', 'cug-header');
     const title = el('div', 'cug-title');
@@ -120,11 +126,11 @@
     if (dUsed) title.appendChild(dUsed);
     header.appendChild(title);
     if (data.model) header.appendChild(el('div', 'cug-model', data.model));
-    card.appendChild(header);
+    detail.appendChild(header);
 
     if (prev && prev.rows['Messages'] && data.rows['Messages'] &&
         data.rows['Messages'].tokens < prev.rows['Messages'].tokens * (1 - COMPACT_DROP_RATIO)) {
-      card.appendChild(el('div', 'cug-note', '與上一次相比 Messages 大幅減少，中間可能發生過壓縮'));
+      detail.appendChild(el('div', 'cug-note', '與上一次相比 Messages 大幅減少，中間可能發生過壓縮'));
     }
 
     const body = el('div', 'cug-body');
@@ -161,16 +167,30 @@
         '未計入總量：' + deferred.map(k => k + ' ' + fmtTokens(data.rows[k].tokens)).join('、')));
     }
     body.appendChild(legend);
-    card.appendChild(body);
+    detail.appendChild(body);
 
-    const toggle = el('button', 'cug-toggle', '顯示原始資料');
+    const toggle = el('button', 'cug-toggle');
     toggle.type = 'button';
-    toggle.addEventListener('click', () => {
+    const sync = () => {
+      const exp = root.getAttribute(EXP_ATTR) === '1';
       const open = root.getAttribute(OPEN_ATTR) === '1';
-      root.setAttribute(OPEN_ATTR, open ? '0' : '1');
-      toggle.textContent = open ? '顯示原始資料' : '隱藏原始資料';
+      expand.textContent = exp ? '隱藏用量詳細資料' : '顯示用量詳細資料';
+      toggle.textContent = open ? '隱藏原始資料' : '顯示原始資料';
+    };
+    expand.addEventListener('click', () => {
+      const exp = root.getAttribute(EXP_ATTR) === '1';
+      root.setAttribute(EXP_ATTR, exp ? '0' : '1');
+      if (exp) root.setAttribute(OPEN_ATTR, '0'); // 收起第一層時第二層一起收
+      sync();
     });
-    card.appendChild(toggle);
+    toggle.addEventListener('click', () => {
+      root.setAttribute(OPEN_ATTR, root.getAttribute(OPEN_ATTR) === '1' ? '0' : '1');
+      sync();
+    });
+    detail.appendChild(toggle);
+    card.appendChild(expand);
+    card.appendChild(detail);
+    card.cugSync = sync;
     return card;
   }
 
@@ -225,6 +245,9 @@
       }
       root.setAttribute(ROOT_ATTR, '1');
       if (!root.hasAttribute(OPEN_ATTR)) root.setAttribute(OPEN_ATTR, '0');
+      if (!root.hasAttribute(EXP_ATTR)) root.setAttribute(EXP_ATTR, '0');
+      const card = root.querySelector(':scope > .' + CARD_CLASS);
+      if (card && card.cugSync) card.cugSync();
       prev = data;
     }
   }
@@ -233,7 +256,11 @@
 
   function injectStyle() {
     const css = `
-[${ROOT_ATTR}][${OPEN_ATTR}="0"] > :not(.${CARD_CLASS}) { display: none !important; }
+[${ROOT_ATTR}][${OPEN_ATTR}="0"] > :not(.${CARD_CLASS}),
+[${ROOT_ATTR}][${EXP_ATTR}="0"] > :not(.${CARD_CLASS}) { display: none !important; }
+/* 收起時只剩按鈕：卡片不畫底色、框線、內距 */
+[${ROOT_ATTR}][${EXP_ATTR}="0"] > .${CARD_CLASS} { background: transparent !important; border-color: transparent !important; box-shadow: none !important; padding: 0 !important; }
+[${ROOT_ATTR}][${EXP_ATTR}="0"] > .${CARD_CLASS} .cug-detail { display: none; }
 .${CARD_CLASS} {
   --cug-bg: #faf9f6; --cug-border: rgba(0,0,0,.10); --cug-fg: #2b2a28; --cug-dim: #85827c;
   --cug-empty: rgba(0,0,0,.14); --cug-up: #c2410c; --cug-down: #15803d;
@@ -275,11 +302,13 @@ html.dark .${CARD_CLASS}, html[data-mode="dark"] .${CARD_CLASS}, html[data-theme
 .cug-down { color: var(--cug-down); }
 .cug-zero { color: var(--cug-dim); }
 .cug-foot { grid-column: 1 / -1; margin-top: 6px; font-size: 12px; color: var(--cug-dim); }
-.cug-toggle {
+.cug-expand, .cug-toggle {
   margin-top: 12px; padding: 4px 10px; font: inherit; font-size: 12px; cursor: pointer;
   color: var(--cug-dim); background: transparent; border: 1px solid var(--cug-border); border-radius: 6px;
 }
-.cug-toggle:hover { color: var(--cug-fg); border-color: var(--cug-dim); }
+.cug-expand { margin-top: 0; }
+[${ROOT_ATTR}][${EXP_ATTR}="1"] > .${CARD_CLASS} .cug-expand { margin-bottom: 12px; }
+.cug-expand:hover, .cug-toggle:hover { color: var(--cug-fg); border-color: var(--cug-dim); }
 `;
     const s = document.createElement('style');
     s.textContent = css;
