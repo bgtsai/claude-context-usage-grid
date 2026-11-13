@@ -1,5 +1,7 @@
 **English** [繁體中文](README-TC.md#claude-context-用量方格圖) 
 
+> **Merged into [bgtsai/claude-chat-tools](https://github.com/bgtsai/claude-chat-tools); no longer updated here.** Install the new script and remove this one.
+
 # Claude /context Usage Grid
 
 A Tampermonkey userscript. When you run `/context` in a Claude Code conversation on [claude.ai](https://claude.ai), the usage table is automatically turned into a 10×10 grid (each cell is 1% of the total context window), so you can see at a glance how much each category takes up and how much room is left before auto-compaction.

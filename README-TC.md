@@ -1,5 +1,7 @@
 [English](../../#claude-context-usage-grid) **繁體中文** 
 
+> **已合併進 [Claude 對話工具（bgtsai/claude-chat-tools）](https://github.com/bgtsai/claude-chat-tools)，這裡不再更新。** 請改裝新腳本，並移除這支。
+
 # Claude /context 用量方格圖
 
 Tampermonkey 腳本。在 [claude.ai](https://claude.ai) 的 Claude Code 對話裡執行 `/context`，原本的用量表格會自動轉成 10×10 方格圖（每格代表總容量的 1%），一眼就能看出各分類的佔比，以及距離自動壓縮還有多少空間。
